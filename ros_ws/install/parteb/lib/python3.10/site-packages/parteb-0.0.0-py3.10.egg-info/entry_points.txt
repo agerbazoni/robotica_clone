@@ -1,0 +1,3 @@
+[console_scripts]
+nodo_b = parteb.nodo_principal:main
+

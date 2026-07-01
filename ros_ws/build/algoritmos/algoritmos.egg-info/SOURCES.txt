@@ -1,0 +1,17 @@
+package.xml
+setup.cfg
+setup.py
+../../build/algoritmos/algoritmos.egg-info/PKG-INFO
+../../build/algoritmos/algoritmos.egg-info/SOURCES.txt
+../../build/algoritmos/algoritmos.egg-info/dependency_links.txt
+../../build/algoritmos/algoritmos.egg-info/top_level.txt
+algoritmos/__init__.py
+algoritmos/likelihood_field.py
+algoritmos/likelihood_field_B.py
+algoritmos/motion_model.py
+algoritmos/occupancy_grid.py
+algoritmos/particle_filter.py
+algoritmos/path_following.py
+algoritmos/path_planning.py
+algoritmos/scan_matching.py
+resource/algoritmos

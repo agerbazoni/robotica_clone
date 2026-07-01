@@ -1,0 +1,4 @@
+[console_scripts]
+map_saver_node = partea.map_saver_node:main
+slam_node = partea.slam_node:main
+

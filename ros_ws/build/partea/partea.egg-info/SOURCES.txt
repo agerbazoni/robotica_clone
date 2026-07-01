@@ -1,0 +1,17 @@
+LICENSE
+package.xml
+setup.cfg
+setup.py
+../../build/partea/partea.egg-info/PKG-INFO
+../../build/partea/partea.egg-info/SOURCES.txt
+../../build/partea/partea.egg-info/dependency_links.txt
+../../build/partea/partea.egg-info/entry_points.txt
+../../build/partea/partea.egg-info/requires.txt
+../../build/partea/partea.egg-info/top_level.txt
+../../build/partea/partea.egg-info/zip-safe
+partea/__init__.py
+partea/slam_node.py
+resource/partea
+test/test_copyright.py
+test/test_flake8.py
+test/test_pep257.py

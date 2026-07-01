@@ -1,0 +1,53 @@
+running egg_info
+creating ../../build/algoritmos/algoritmos.egg-info
+writing ../../build/algoritmos/algoritmos.egg-info/PKG-INFO
+writing dependency_links to ../../build/algoritmos/algoritmos.egg-info/dependency_links.txt
+writing top-level names to ../../build/algoritmos/algoritmos.egg-info/top_level.txt
+writing manifest file '../../build/algoritmos/algoritmos.egg-info/SOURCES.txt'
+reading manifest file '../../build/algoritmos/algoritmos.egg-info/SOURCES.txt'
+writing manifest file '../../build/algoritmos/algoritmos.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build
+creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib
+creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/likelihood_field.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/path_following.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/likelihood_field_B.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/path_planning.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/scan_matching.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/__init__.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/particle_filter.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/occupancy_grid.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+copying algoritmos/motion_model.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos
+running install
+running install_lib
+creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/likelihood_field.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/path_following.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/likelihood_field_B.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/path_planning.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/scan_matching.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/__init__.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/particle_filter.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/occupancy_grid.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build/lib/algoritmos/motion_model.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/likelihood_field.py to likelihood_field.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/path_following.py to path_following.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/likelihood_field_B.py to likelihood_field_B.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/path_planning.py to path_planning.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/scan_matching.py to scan_matching.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/particle_filter.py to particle_filter.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/occupancy_grid.py to occupancy_grid.cpython-310.pyc
+byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos/motion_model.py to motion_model.cpython-310.pyc
+running install_data
+copying package.xml -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/share/algoritmos
+creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/share/ament_index
+creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/share/ament_index/resource_index
+creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/share/ament_index/resource_index/packages
+copying resource/algoritmos -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/share/ament_index/resource_index/packages
+running install_egg_info
+Copying ../../build/algoritmos/algoritmos.egg-info to /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos-0.0.1-py3.10.egg-info
+running install_scripts
+writing list of installed files to '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/install.log'
