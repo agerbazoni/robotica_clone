@@ -1,0 +1,18 @@
+[0.504s] Invoking command in '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/algoritmos': PYTHONPATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/algoritmos build --build-base /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build install --record /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/install.log --single-version-externally-managed install_data
+[0.657s] running egg_info
+[0.657s] writing ../../build/algoritmos/algoritmos.egg-info/PKG-INFO
+[0.658s] writing dependency_links to ../../build/algoritmos/algoritmos.egg-info/dependency_links.txt
+[0.658s] writing top-level names to ../../build/algoritmos/algoritmos.egg-info/top_level.txt
+[0.660s] reading manifest file '../../build/algoritmos/algoritmos.egg-info/SOURCES.txt'
+[0.661s] writing manifest file '../../build/algoritmos/algoritmos.egg-info/SOURCES.txt'
+[0.661s] running build
+[0.661s] running build_py
+[0.661s] running install
+[0.661s] running install_lib
+[0.663s] running install_data
+[0.663s] running install_egg_info
+[0.664s] removing '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos-0.0.1-py3.10.egg-info' (and everything under it)
+[0.664s] Copying ../../build/algoritmos/algoritmos.egg-info to /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages/algoritmos-0.0.1-py3.10.egg-info
+[0.664s] running install_scripts
+[0.677s] writing list of installed files to '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/install.log'
+[0.693s] Invoked command in '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/algoritmos' returned '0': PYTHONPATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/algoritmos build --build-base /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/build install --record /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/algoritmos/install.log --single-version-externally-managed install_data

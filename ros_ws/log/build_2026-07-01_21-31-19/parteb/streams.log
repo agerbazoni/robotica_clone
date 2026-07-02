@@ -1,0 +1,22 @@
+[1.063s] Invoking command in '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/parteb': AMENT_PREFIX_PATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos:${AMENT_PREFIX_PATH} PYTHONPATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/parteb/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb/lib/python3.10/site-packages:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/parteb build --build-base /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/parteb/build install --record /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/parteb/install.log --single-version-externally-managed install_data
+[1.376s] running egg_info
+[1.377s] writing ../../build/parteb/parteb.egg-info/PKG-INFO
+[1.383s] writing dependency_links to ../../build/parteb/parteb.egg-info/dependency_links.txt
+[1.383s] writing entry points to ../../build/parteb/parteb.egg-info/entry_points.txt
+[1.383s] writing requirements to ../../build/parteb/parteb.egg-info/requires.txt
+[1.383s] writing top-level names to ../../build/parteb/parteb.egg-info/top_level.txt
+[1.385s] reading manifest file '../../build/parteb/parteb.egg-info/SOURCES.txt'
+[1.386s] adding license file 'LICENSE'
+[1.387s] writing manifest file '../../build/parteb/parteb.egg-info/SOURCES.txt'
+[1.387s] running build
+[1.388s] running build_py
+[1.388s] running install
+[1.388s] running install_lib
+[1.390s] running install_data
+[1.391s] running install_egg_info
+[1.394s] removing '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb/lib/python3.10/site-packages/parteb-0.0.0-py3.10.egg-info' (and everything under it)
+[1.394s] Copying ../../build/parteb/parteb.egg-info to /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb/lib/python3.10/site-packages/parteb-0.0.0-py3.10.egg-info
+[1.395s] running install_scripts
+[1.421s] Installing nodo_b script to /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb/lib/parteb
+[1.421s] writing list of installed files to '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/parteb/install.log'
+[1.465s] Invoked command in '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/parteb' returned '0': AMENT_PREFIX_PATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos:${AMENT_PREFIX_PATH} PYTHONPATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/parteb/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb/lib/python3.10/site-packages:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/parteb build --build-base /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/parteb/build install --record /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/parteb/install.log --single-version-externally-managed install_data

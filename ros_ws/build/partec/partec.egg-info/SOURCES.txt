@@ -8,6 +8,7 @@ setup.py
 ../../build/partec/partec.egg-info/requires.txt
 ../../build/partec/partec.egg-info/top_level.txt
 ../../build/partec/partec.egg-info/zip-safe
+launch/partec.launch.py
 partec/__init__.py
 partec/state_machine.py
 partec/vision_node.py

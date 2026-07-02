@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped # NUEVO IMPORT PARA EL GOAL
 from cv_bridge import CvBridge
@@ -11,15 +12,49 @@ import math # NUEVO IMPORT PARA CALCULAR DISTANCIAS
 class VisionNode(Node):
     def __init__(self):
         super().__init__('vision_node')
-        
-        # Suscripciones
-        self.subscription = self.create_subscription(
-            Image, '/tb4_0/oakd/rgb/preview/image_raw', self.image_callback, 10)
-        self.camera_info_sub = self.create_subscription(
-            CameraInfo, '/tb4_0/oakd/rgb/preview/camera_info', self.camera_info_callback, 1)
-            
-        # PUBLICADOR DEL GOAL
+
+        self.declare_parameter("robot", "simulado")
+        robot = self.get_parameter("robot").get_parameter_value().string_value
+
+        if robot not in ("real", "simulado"):
+            self.get_logger().warn(f"Valor inválido para 'robot': '{robot}'. Usando 'simulado'.")
+            robot = "simulado"
+
+        # Tópicos de cámara configurables por launch (útil en simulado, donde
+        # el nombre depende del mundo/URDF que se esté usando).
+        self.declare_parameter("camera_topic_sim", "/camera/image_raw")
+        self.declare_parameter("camera_info_topic_sim", "/camera/camera_info")
+
+        if robot == "simulado":
+            image_topic = self.get_parameter("camera_topic_sim").get_parameter_value().string_value
+            camera_info_topic = self.get_parameter("camera_info_topic_sim").get_parameter_value().string_value
+
+            self.subscription = self.create_subscription(
+                Image, image_topic, self.image_callback, 10)
+            self.camera_info_sub = self.create_subscription(
+                CameraInfo, camera_info_topic, self.camera_info_callback, 1)
+        else:
+            # Los sensores del TB publican BEST_EFFORT: el subscriber debe matchear o no recibe nada
+            sensor_qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+            self.subscription = self.create_subscription(
+                Image, '/tb4_0/oakd/rgb/preview/image_raw', self.image_callback, sensor_qos)
+            self.camera_info_sub = self.create_subscription(
+                CameraInfo, '/tb4_0/oakd/rgb/preview/camera_info', self.camera_info_callback, sensor_qos)
+
+        # PUBLICADOR DEL GOAL (interno, no depende del robot -> sin prefijo tb4_0)
         self.goal_pub = self.create_publisher(PoseStamped, '/vision/cono_pose_relativa', 10)
+
+        # Filtro geométrico por altura real estimada: como conocemos la altura del
+        # cono y la altura de la cámara, podemos invertir la proyección de la cámara
+        # para estimar cuánto mide realmente lo que detectamos. Si "algo rojo" mide
+        # 1.60m de alto (una persona), no es un cono aunque el HSV matchee.
+        self.declare_parameter("cone_height", 0.30)            # [m] altura real del cono
+        self.declare_parameter("cone_height_tolerance", 0.15)  # [m] margen de error tolerado
+        self.declare_parameter("max_cone_distance", 4.0)       # [m] descarta detecciones más lejanas que esto
+        self.cone_height = self.get_parameter("cone_height").get_parameter_value().double_value
+        self.cone_height_tolerance = self.get_parameter("cone_height_tolerance").get_parameter_value().double_value
+        self.max_cone_distance = self.get_parameter("max_cone_distance").get_parameter_value().double_value
         
         # Variables de estado
         self.br = CvBridge()
@@ -85,7 +120,19 @@ class VisionNode(Node):
                             Z = (self.camera_height * self.intrinsics['fy']) / (v - self.intrinsics['cy'])
                             X = ((u - self.intrinsics['cx']) * Z) / self.intrinsics['fx']
                             
-                            if 0.1 < Z < 10.0:
+                            if 0.1 < Z < self.max_cone_distance:
+                                # Filtro geométrico por altura: invertimos la misma proyección
+                                # que usamos para Z, pero con la fila SUPERIOR del bounding box (y),
+                                # para estimar cuánto mide realmente el objeto detectado.
+                                altura_estimada = self.camera_height - ((y - self.intrinsics['cy']) * Z / self.intrinsics['fy'])
+                                altura_min = self.cone_height - self.cone_height_tolerance
+                                altura_max = self.cone_height + self.cone_height_tolerance
+
+                                if not (altura_min < altura_estimada < altura_max):
+                                    # Es rojo, tiene forma de cono en 2D, pero mide otra cosa
+                                    # en el mundo real (ej. una persona) -> lo descartamos.
+                                    continue
+
                                 # LÓGICA DE PUBLICACIÓN CON UMBRAL
                                 publicar = False
                                 if self.last_published_x is None:

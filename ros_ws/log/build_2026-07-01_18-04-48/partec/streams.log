@@ -1,0 +1,31 @@
+[0.777s] Invoking command in '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/partec': AMENT_PREFIX_PATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos:${AMENT_PREFIX_PATH} PYTHONPATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb/lib/python3.10/site-packages:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/partec build --build-base /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/build install --record /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/install.log --single-version-externally-managed install_data
+[1.018s] running egg_info
+[1.018s] writing ../../build/partec/partec.egg-info/PKG-INFO
+[1.019s] writing dependency_links to ../../build/partec/partec.egg-info/dependency_links.txt
+[1.019s] writing entry points to ../../build/partec/partec.egg-info/entry_points.txt
+[1.019s] writing requirements to ../../build/partec/partec.egg-info/requires.txt
+[1.019s] writing top-level names to ../../build/partec/partec.egg-info/top_level.txt
+[1.022s] reading manifest file '../../build/partec/partec.egg-info/SOURCES.txt'
+[1.024s] writing manifest file '../../build/partec/partec.egg-info/SOURCES.txt'
+[1.024s] running build
+[1.025s] running build_py
+[1.025s] copying partec/vision_node.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/build/lib/partec
+[1.025s] copying partec/state_machine.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/build/lib/partec
+[1.026s] running install
+[1.026s] running install_lib
+[1.027s] copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/build/lib/partec/vision_node.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages/partec
+[1.027s] copying /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/build/lib/partec/state_machine.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages/partec
+[1.028s] byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages/partec/vision_node.py to vision_node.cpython-310.pyc
+[1.030s] byte-compiling /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages/partec/state_machine.py to state_machine.cpython-310.pyc
+[1.031s] running install_data
+[1.031s] copying package.xml -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/share/partec
+[1.031s] creating /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/share/partec/launch
+[1.031s] copying launch/partec.launch.py -> /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/share/partec/launch
+[1.032s] running install_egg_info
+[1.033s] removing '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages/partec-0.0.0-py3.10.egg-info' (and everything under it)
+[1.033s] Copying ../../build/partec/partec.egg-info to /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages/partec-0.0.0-py3.10.egg-info
+[1.034s] running install_scripts
+[1.062s] Installing cerebro script to /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/partec
+[1.062s] Installing vision script to /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/partec
+[1.062s] writing list of installed files to '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/install.log'
+[1.094s] Invoked command in '/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/partec' returned '0': AMENT_PREFIX_PATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos:${AMENT_PREFIX_PATH} PYTHONPATH=/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/partec/lib/python3.10/site-packages:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/parteb/lib/python3.10/site-packages:/home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/install/algoritmos/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/partec build --build-base /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/build install --record /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/partec/install.log --single-version-externally-managed install_data
