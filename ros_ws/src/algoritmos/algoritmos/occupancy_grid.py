@@ -36,7 +36,7 @@ class ParticleMap():
        self.grid = np.zeros((height, width), dtype=np.int16)
 
        # Constantes para actualización
-       self.l_occ = 3       # log-odds para celda ocupada.
+       self.l_occ = 5       # log-odds para celda ocupada.
        self.l_free = -1     # log-odds para celda libre
  
    def world_to_grid(self, x, y):
@@ -118,18 +118,31 @@ class ParticleMap():
 
        hit = r < range_max  # rayos que efectivamente impactan (no alcanzan range_max)
 
-       for i in range(r.size):
-           row, col = bresenham(pose_row, pose_col, endpoint_row[i], endpoint_col[i])
+       # Raytrace vectorizado (muestreado): en vez de bresenham por rayo (while de Python),
+       # se muestrean TODAS las celdas de TODOS los rayos de una sola pasada con numpy.
+       # Cada rayo es P(t) = pose + t*(endpoint - pose); se toma ~1 muestra por celda.
+       dr = endpoint_row - pose_row                    # (R,) desplazamiento en filas por rayo
+       dc = endpoint_col - pose_col                    # (R,) en columnas
+       steps = np.maximum(np.abs(dr), np.abs(dc))      # (R,) nº de celdas de cada rayo (paso 1 en el eje dominante)
+       n_max = int(steps.max())
 
-           mask = (row >= 0) & (row < self.height) & (col >= 0) & (col < self.width)
-           row, col = row[mask], col[mask]
+       k = np.arange(n_max + 1)                          # (n_max+1,) indice de paso 0..n_max
+       t = k[None, :] / np.maximum(steps, 1)[:, None]    # (R, n_max+1) parametro 0..1 (max(...,1) evita /0)
+       rows = pose_row + np.rint(t * dr[:, None]).astype(np.intp)   # (R, n_max+1)
+       cols = pose_col + np.rint(t * dc[:, None]).astype(np.intp)
 
-           if len(row)==0: continue
-           self.grid[row[:-1], col[:-1]] += self.l_free # celdas libres
+       in_bounds = (rows >= 0) & (rows < self.height) & (cols >= 0) & (cols < self.width)
 
-           if hit[i]:
-               self.grid[row[-1], col[-1]] += self.l_occ # celda ocupada
-     
+       # Celdas LIBRES: el camino SIN el endpoint (k < steps). np.add.at acumula los indices
+       # repetidos (varios rayos cruzando la misma celda), a diferencia de un += normal.
+       free = in_bounds & (k[None, :] < steps[:, None])
+       np.add.at(self.grid, (rows[free], cols[free]), self.l_free)
+
+       # Celdas OCUPADAS: el endpoint de los rayos que impactan
+       er, ec = endpoint_row[hit], endpoint_col[hit]
+       occ_in = (er >= 0) & (er < self.height) & (ec >= 0) & (ec < self.width)
+       np.add.at(self.grid, (er[occ_in], ec[occ_in]), self.l_occ)
+
        np.clip(self.grid, -127, 127, out=self.grid) # PARA EVITAR OVERFLOW DE INT8
 
    def get_probability(self):

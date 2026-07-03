@@ -1,11 +1,20 @@
+import os
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
+    # Configs de RViz ubicadas junto a este launch file. La real usa los tópicos
+    # prefijados con /tb4_0; la de sim usa los tópicos sin prefijo.
+    launch_dir = os.path.dirname(os.path.realpath(__file__))
+    rviz_config_sim = os.path.join(launch_dir, 'rviz.rviz')
+    rviz_config_real = os.path.join(launch_dir, 'rviz_real.rviz')
+
     robot_arg = DeclareLaunchArgument(
         'robot',
         default_value='simulado',
@@ -34,12 +43,12 @@ def generate_launch_description():
     use_rviz_arg = DeclareLaunchArgument(
         'use_rviz',
         default_value='true',
-        description='Si es true, levanta RViz con la config de Parte B',
+        description='Si es true, levanta RViz con la config rviz.rviz de este directorio',
     )
-    rviz_dir_arg = DeclareLaunchArgument(
-        'rviz_dir',
-        default_value='/home/alumno1/Documents/ros_ws/src/rviz',
-        description='Directorio con los .rviz',
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Usar el reloj de /clock (poner en true al reproducir un rosbag con "ros2 bag play --clock")',
     )
 
     robot = LaunchConfiguration('robot')
@@ -48,7 +57,8 @@ def generate_launch_description():
     camera_info_topic_sim = LaunchConfiguration('camera_info_topic_sim')
     use_nodo_b = LaunchConfiguration('use_nodo_b')
     use_rviz = LaunchConfiguration('use_rviz')
-    rviz_dir = LaunchConfiguration('rviz_dir')
+    # Casteado a bool: use_sim_time es un parámetro booleano de rclpy.
+    use_sim_time = ParameterValue(LaunchConfiguration('use_sim_time'), value_type=bool)
 
     vision_node = Node(
         package='partec',
@@ -59,6 +69,7 @@ def generate_launch_description():
             'robot': robot,
             'camera_topic_sim': camera_topic_sim,
             'camera_info_topic_sim': camera_info_topic_sim,
+            'use_sim_time': use_sim_time,
         }],
     )
 
@@ -67,7 +78,7 @@ def generate_launch_description():
         executable='cerebro',
         name='state_machine_node',
         output='screen',
-        parameters=[{'robot': robot, 'map_path': map_path}],
+        parameters=[{'robot': robot, 'map_path': map_path, 'use_sim_time': use_sim_time}],
     )
 
     # nodo_b de parteb resuelve localización + planificación + path following;
@@ -77,7 +88,7 @@ def generate_launch_description():
         executable='nodo_b',
         name='nodo_b',
         output='screen',
-        parameters=[{'map_path': map_path, 'robot': robot}],
+        parameters=[{'map_path': map_path, 'robot': robot, 'use_sim_time': use_sim_time}],
         condition=IfCondition(use_nodo_b),
     )
 
@@ -86,7 +97,8 @@ def generate_launch_description():
         executable='rviz2',
         name='rviz2',
         output='screen',
-        arguments=['-d', [rviz_dir, '/rviz2_config_B.rviz']],
+        arguments=['-d', rviz_config_sim],
+        parameters=[{'use_sim_time': use_sim_time}],
         condition=IfCondition(PythonExpression(
             ["'", use_rviz, "' == 'true' and '", robot, "' == 'simulado'"])),
     )
@@ -96,7 +108,8 @@ def generate_launch_description():
         executable='rviz2',
         name='rviz2',
         output='screen',
-        arguments=['-d', [rviz_dir, '/rviz2_config_B_real.rviz']],
+        arguments=['-d', rviz_config_real],
+        parameters=[{'use_sim_time': use_sim_time}],
         condition=IfCondition(PythonExpression(
             ["'", use_rviz, "' == 'true' and '", robot, "' == 'real'"])),
     )
@@ -108,7 +121,7 @@ def generate_launch_description():
         camera_info_topic_sim_arg,
         use_nodo_b_arg,
         use_rviz_arg,
-        rviz_dir_arg,
+        use_sim_time_arg,
         vision_node,
         cerebro_node,
         nodo_b_node,

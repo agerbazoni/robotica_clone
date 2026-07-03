@@ -14,6 +14,7 @@
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <exec_depend>parteb</exec_depend>
+  <exec_depend>algoritmos</exec_depend>
   <exec_depend>rviz2</exec_depend>
 
   <test_depend>ament_copyright</test_depend>

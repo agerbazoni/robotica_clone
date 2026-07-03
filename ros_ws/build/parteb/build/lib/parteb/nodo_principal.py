@@ -3,9 +3,10 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from nav_msgs.msg import OccupancyGrid, Odometry, Path
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Twist, PoseArray, Pose
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Twist, PoseArray, Pose, TransformStamped
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from tf2_ros import TransformBroadcaster
 from algoritmos import likelihood_field_B, motion_model, particle_filter, path_planning, path_following
 from parteb.map_loader import MapData
 
@@ -65,6 +66,31 @@ def robot_to_sensor(robot_pose, lidar_offset):
     """
     return matrix_to_pose(pose_to_matrix(robot_pose) @ pose_to_matrix(lidar_offset))
 
+
+def compute_deltas(pose, last_odom):
+    """
+    Deltas del motion model de odometría (rot1, trans, rot2) entre dos poses 2D
+    consecutivas (x, y, theta). 'pose' es la más nueva; 'last_odom', la anterior.
+    El umbral en traslación evita que atan2(dy, dx) —el rumbo del desplazamiento—
+    quede dominado por el ruido cuando el movimiento es casi nulo (giro en el lugar).
+    """
+    x, y, theta = pose
+    dx = x - last_odom[0]
+    dy = y - last_odom[1]
+    delta_t = np.sqrt(dx**2 + dy**2)
+
+    if delta_t > 0.01:
+        delta_rot1 = np.arctan2(dy, dx) - last_odom[2]
+        delta_rot2 = theta - last_odom[2] - delta_rot1
+    else:
+        delta_rot1 = 0.0
+        delta_rot2 = theta - last_odom[2]
+
+    delta_rot1 = np.arctan2(np.sin(delta_rot1), np.cos(delta_rot1))
+    delta_rot2 = np.arctan2(np.sin(delta_rot2), np.cos(delta_rot2))
+
+    return {'t': delta_t, 'r1': delta_rot1, 'r2': delta_rot2}
+
 class nodo_b(Node):
     """
     Nodo principal que implementa un sistema de navegación.
@@ -84,13 +110,20 @@ class nodo_b(Node):
         self.state = IDLE
 
         # Inicialización de variables para el filtro de partículas
-        self.N = 100
+        self.N = 50
         self.particles = None
         self.weights = None
         
-        # Inicialización de variable para la odometría
+        # Inicialización de variables para la odometría. last_odom = última lectura;
+        # prev_odom = la usada en el scan anterior (para el delta acumulado por scan).
         self.last_odom = None
-        
+        self.prev_odom = None
+        # Frame de la odometria (se toma del header del msg de odom). Publicamos la TF
+        # map->odom para conectar el frame 'map' (donde vive la estimacion) al arbol de
+        # TF del robot (odom->base->sensores), que si no queda desconectado en el real.
+        self.odom_frame = 'odom'
+        self.tf_broadcaster = TransformBroadcaster(self)
+
         # Inicialización de variables para la posición objetivo, la posición inicial y la pose estimada
         self.goal = None
         self.goal_dif = False
@@ -98,15 +131,9 @@ class nodo_b(Node):
         self.inipos_dif = False
         self.estimated_pose = None
 
-        # Inicialización de variables para la planificación de rutas
-        self.path = None
-        self.radio_robot = 0.105
-        self.margen = 0.06
-        self.radius_cells = int((self.radio_robot + self.margen) / self.map_data.resolution)
-        self.inflated = path_planning.inflate_map(self.map_data.occupied, self.radius_cells)
-
-        # Inicialización para pure pursuit
-        self.lookahead = 0.3
+        # Inicialización para pure pursuit. Lookahead corto -> recorta menos las
+        # curvas (sigue el path más fielmente) para no clipear obstáculos cercanos.
+        self.lookahead = 0.1
 
         # Inicialización del mapa dinámico y variables relacionadas con la detección de obstáculos
         self.dynamic_map = np.zeros((self.map_data.height, self.map_data.width), dtype=np.float32)
@@ -146,6 +173,7 @@ class nodo_b(Node):
 
             self.rTlidar = np.eye(4)
             self.rotation_error = 0.0
+            self.radio_robot = 0.105 # en metros
         else:
             # Los sensores del TB publican BEST_EFFORT
             sensor_qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
@@ -173,11 +201,21 @@ class nodo_b(Node):
                                      [0.0,  0.0,  0.0,   1.0]])
             # 20.5 grados inercia al girar a 1 rad/s
             self.rotation_error = np.deg2rad(20.5)
+            self.radio_robot = 0.1705 # en metros
 
         self.robot = robot
         # Transformacion para proyectar los rayos desde la pose del lidar y no desde el centro del robot.
         self.lidar_offset = lidar_offset_from_rTlidar(self.rTlidar)
 
+        # Inicialización de variables para la planificación de rutas
+        self.path = None
+        # Margen de seguridad extra sobre el radio del robot al inflar el mapa. Con más
+        # margen el path se aleja de los obstáculos y el controlador tiene aire para
+        # recortar la curva sin clipearlos (clearance ~9.5 cm en vez de 5.5 cm).
+        self.margen = 0.03
+        self.radius_cells = int((self.radio_robot + self.margen) / self.map_data.resolution)
+        self.inflated = path_planning.inflate_map(self.map_data.occupied, self.radius_cells)
+        
         self.publish_inflated(self.inflated)
 
 # ------------------------------------------------------
@@ -189,6 +227,11 @@ class nodo_b(Node):
         Parámetros:
         - msg: mensaje de tipo Odometry.
         """
+        # El frame de la odom (odom en sim, tb4_0/odom en el real) es el hijo de la TF
+        # map->odom que publicamos: lo tomamos del header para que coincida con el que
+        # usa el driver al publicar odom->base.
+        self.odom_frame = msg.header.frame_id
+
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
 
@@ -200,29 +243,10 @@ class nodo_b(Node):
         current_rotation = R.from_quat([q_x, q_y, q_z, q_w])
         theta = current_rotation.as_euler('xyz', degrees=False)[2]
 
-        deltas = {'t': 0, 'r1': 0, 'r2': 0}
-
-        if self.last_odom != None:
-            dx = x - self.last_odom[0]
-            dy = y - self.last_odom[1]
-            delta_t = np.sqrt(dx**2 + dy**2)
-
-            if delta_t > 1e-6:
-                delta_rot1 = np.arctan2(dy, dx) - self.last_odom[2]
-                delta_rot2 = theta - self.last_odom[2] - delta_rot1
-            else:
-                delta_rot1 = 0.0
-                delta_rot2 = theta - self.last_odom[2]
-
-            delta_rot1 = np.arctan2(np.sin(delta_rot1), np.cos(delta_rot1))
-            delta_rot2 = np.arctan2(np.sin(delta_rot2), np.cos(delta_rot2))
-
-            if delta_t > 0.001 or abs(delta_rot1) > 0.01 or abs(delta_rot2) > 0.01:
-                deltas['t'] = delta_t
-                deltas['r1'] = delta_rot1
-                deltas['r2'] = delta_rot2
-                self.particles = motion_model.sample_motion_model_odometry(self.particles, deltas, self.noise)
-
+        # Solo guardamos la última odom. La predicción (motion model) se hace UNA vez por
+        # scan en scan_callback, con el delta acumulado desde el scan anterior. Aplicarlo
+        # acá por cada mensaje (~30 Hz) dispersaba/corría la nube: sobre desplazamientos
+        # minúsculos atan2(dy,dx) da un delta_rot1 basura que randomiza el heading.
         self.last_odom = (x, y, theta)
 
 # ------------------------------------------------------
@@ -238,6 +262,16 @@ class nodo_b(Node):
 
         if self.particles is None:
             return
+
+        # Predicción: motion model UNA sola vez por scan, con el delta de odometría
+        # acumulado desde el scan anterior. Así el desplazamiento es grande y bien
+        # condicionado (delta_rot1 no es ruido) y el ruido se inyecta una vez, no ~30
+        # veces por segundo como pasaba al aplicarlo por cada mensaje de odom.
+        if self.last_odom is not None:
+            if self.prev_odom is not None:
+                deltas = compute_deltas(self.last_odom, self.prev_odom)
+                self.particles = motion_model.sample_motion_model_odometry(self.particles, deltas, self.noise)
+            self.prev_odom = self.last_odom
 
         ranges = np.array(msg.ranges, dtype=float)
         scan_angles = msg.angle_min + np.arange(len(ranges)) * msg.angle_increment
@@ -289,6 +323,7 @@ class nodo_b(Node):
             self.inipos = [x, y, theta]
             self.inipos_dif = True
             self.last_odom = None
+            self.prev_odom = None
             self.path = None
             self.publish_movement(0.0, 0.0)
 
@@ -327,6 +362,50 @@ class nodo_b(Node):
 # ------------------------------------------------------
 # PLAN ROUTE
 # ------------------------------------------------------
+    def nearest_free_cell(self, combined, cell):
+        """
+        Dada una celda (col, row) en coordenadas de grilla, devuelve la celda libre
+        más cercana en el mapa combinado de ocupación. Si la celda ya está libre la
+        devuelve tal cual; si no hay ninguna celda libre, devuelve None.
+        """
+        col, row = cell
+        if not combined[row, col]:
+            return cell
+        free_cells = np.argwhere(~combined)  # filas [row, col] de celdas libres
+        if len(free_cells) == 0:
+            return None
+        dists = np.hypot(free_cells[:, 0] - row, free_cells[:, 1] - col)
+        nearest_row, nearest_col = free_cells[np.argmin(dists)]
+        return (int(nearest_col), int(nearest_row))
+
+    def suavizar_path(self, path, combined, peso_data=0.5, peso_suave=0.3, iteraciones=40):
+        """
+        Suaviza un path (lista de puntos (x, y) del mundo) para redondear las esquinas
+        escalonadas que produce A* sobre la grilla. Sin suavizar, esos giros bruscos de
+        45°/90° hacen que pure_pursuit recorte las curvas y se desvíe cerca de los
+        obstáculos hasta chocarlos.
+
+        Filtro de gradiente clásico: cada punto interior se mueve balanceando quedarse
+        cerca del original (peso_data) y alinearse con sus vecinos (peso_suave). Un punto
+        movido se acepta solo si sigue en espacio libre (combined), de modo que el path
+        suavizado nunca atraviesa un obstáculo. Los extremos quedan fijos.
+        """
+        if len(path) < 3:
+            return path
+        nuevo = [list(p) for p in path]
+        for _ in range(iteraciones):
+            for i in range(1, len(path) - 1):
+                cand = [
+                    nuevo[i][j]
+                    + peso_data * (path[i][j] - nuevo[i][j])
+                    + peso_suave * (nuevo[i-1][j] + nuevo[i+1][j] - 2 * nuevo[i][j])
+                    for j in (0, 1)
+                ]
+                col, row = self.map_data.world_to_grid(cand[0], cand[1])
+                if 0 <= row < self.map_data.height and 0 <= col < self.map_data.width and not combined[row, col]:
+                    nuevo[i] = cand
+        return [tuple(p) for p in nuevo]
+
     def plan_route(self):
         """
         Planea una ruta desde la posición actual hasta la posición objetivo utilizando el algoritmo A*.
@@ -336,26 +415,32 @@ class nodo_b(Node):
         dynamic_inflated = path_planning.inflate_map(dynamic_occupied, self.radius_cells) # Para un kernel circular para inflar el mapa y evitar obstáculos dinámicos y estáticos.
         combined = self.inflated | dynamic_inflated # Combina el mapa inflado estático con el mapa dinámico inflado para obtener un mapa combinado de ocupación.
 
+        # Costo blando por proximidad a los obstáculos reales (estáticos + dinámicos, SIN
+        # inflar): despega el path de las paredes en lo ancho, sin bloquear los corredores
+        # angostos. Se recalcula por plan porque el mapa dinámico cambia.
+        obstacle_cost = path_planning.compute_obstacle_cost(
+            self.map_data.occupied | dynamic_occupied, self.radius_cells)
+
         pose = particle_filter.get_selected_state(self.particles, self.weights)
         start = self.map_data.world_to_grid(pose[0], pose[1])
         goal = self.map_data.world_to_grid(self.goal[0], self.goal[1])
 
-        sc, sr = start
-        # Si el start está bloqueado, buscar celda libre más cercana
-        if combined[sr, sc]:
-            free_cells = np.argwhere(~combined)
-            if len(free_cells) == 0:
-                self.path = None
-                return
-            dists = np.hypot(free_cells[:, 0] - sr, free_cells[:, 1] - sc)
-            nearest = free_cells[np.argmin(dists)]
-            sr, sc = nearest[0], nearest[1]
-            start = (sc, sr)
+        # Si el start o el goal caen sobre una celda bloqueada, los reubicamos a la
+        # celda libre más cercana. Para el goal esto es clave al ir hacia el cono:
+        # el cono está pegado a una pared y su celda queda dentro del buffer de
+        # inflado, así que planificamos hasta el punto libre más cercano a él
+        # (la aproximación final la resuelve el cerebro por visión/LIDAR).
+        start = self.nearest_free_cell(combined, start)
+        goal = self.nearest_free_cell(combined, goal)
+        if start is None or goal is None:
+            self.path = None
+            return
 
-        path_cells = path_planning.a_star(combined, start, goal) # Calcula la ruta utilizando el algoritmo A* en el mapa combinado de ocupación.
+        path_cells = path_planning.a_star(combined, start, goal, cost_field=obstacle_cost) # A* sobre el mapa combinado, con costo blando que aleja el path de las paredes.
 
         if path_cells is not None:
-            self.path = [self.map_data.grid_to_world(c, r) for c, r in path_cells] # Convierte las coordenadas de la ruta de celdas del mapa a coordenadas del mundo real y almacena la ruta
+            path_world = [self.map_data.grid_to_world(c, r) for c, r in path_cells] # Convierte las coordenadas de la ruta de celdas del mapa a coordenadas del mundo real
+            self.path = self.suavizar_path(path_world, combined) # Redondea las esquinas escalonadas de A* para que pure_pursuit no recorte curvas cerca de obstáculos
         else:
             self.path = None
 
@@ -410,7 +495,7 @@ class nodo_b(Node):
 
                 if 0 <= row < self.map_data.height and 0 <= col < self.map_data.width:
                     if not self.inflated[row, col]: # Si la celda no está ocupada en el mapa inflado estático, suma 0.3 a la celda del mapa dinámico
-                        self.dynamic_map[row, col] = min(self.dynamic_map[row, col] + 0.3, 1.0)
+                        self.dynamic_map[row, col] = min(self.dynamic_map[row, col] + 0.5, 1.0)
 
         curr = (self.dynamic_map > 0.5) # Marca las celdas ocupadas en el mapa dinámico después de la actualización
         if np.any(prev != curr): # Si hubo algún cambio en el mapa dinámico, se marca dynamic_changed como True
@@ -473,6 +558,39 @@ class nodo_b(Node):
         msg.pose.orientation.w = q[3]
 
         self.publish_estimated_pose.publish(msg)
+
+    def broadcast_map_to_odom(self, pose: list):
+        """
+        Publica la TF map->odom, que conecta el frame 'map' (donde vive la estimacion
+        del filtro) con el arbol de TF del robot. Siguiendo REP-105, la localizacion
+        publica map->odom (no map->base) para no pisar la odom->base del driver:
+
+            map->odom = (map->base_estimada) @ inv(odom->base_medida)
+
+        con map->base = pose estimada del filtro y odom->base = ultima lectura de odom.
+        """
+        if self.last_odom is None:
+            return
+
+        T_map_base = pose_to_matrix((pose[0], pose[1], pose[2]))
+        T_odom_base = pose_to_matrix(self.last_odom)
+        x, y, yaw = matrix_to_pose(T_map_base @ np.linalg.inv(T_odom_base))
+
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = "map"
+        t.child_frame_id = self.odom_frame
+        t.transform.translation.x = float(x)
+        t.transform.translation.y = float(y)
+        t.transform.translation.z = 0.0
+
+        q = R.from_euler('z', yaw).as_quat()
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+        t.transform.rotation.w = q[3]
+
+        self.tf_broadcaster.sendTransform(t)
 
     def publish_planned_path(self):
         """
@@ -567,6 +685,7 @@ class nodo_b(Node):
         if self.estimated_pose is not None:
             self.publish_pose(self.estimated_pose)
             self.publish_particles()
+            self.broadcast_map_to_odom(self.estimated_pose)
 
         if self.dynamic_changed: # Si el mapa dinámico ha cambiado, se recalcula el campo de probabilidad y se publica el mapa dinámico actualizado.
             combined_occupied = self.map_data.occupied | (self.dynamic_map > 0.5)

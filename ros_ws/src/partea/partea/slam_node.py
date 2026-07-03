@@ -48,11 +48,13 @@ def compute_deltas(pose:tuple, last_odom:tuple) -> dict[str, float]:
     delta_t = np.sqrt(dx**2 + dy**2)
 
 
-    if delta_t > 1e-6:
+    # Umbral en METROS: por debajo de esto la traslacion es ruido y atan2(dy,dx) daria
+    # un delta_rot1 basura. En rotaciones (casi) en el lugar se trata como giro puro.
+    if delta_t > 0.01:
         delta_rot1 = np.arctan2(dy, dx) - last_odom[2]
         delta_rot2 = theta - last_odom[2] - delta_rot1
     else:
-        # No translation → assume in-place rotation
+        # Sin traslacion significativa → rotacion en el lugar (todo el giro va en delta_rot2)
         delta_rot1 = 0.0
         delta_rot2 = theta - last_odom[2]
 
@@ -96,15 +98,15 @@ def sensor_to_robot(sensor_pose, lidar_offset):
 
 class SLAM(Node):
     def __init__(self,
-                 N:int=20,
-                 odom_noise:np.array=np.array([.03, .03, .01, .01]),
+                 N:int=15,
+                 odom_noise:np.array=np.array([.1, .1, .1, .1]),
                  map_size:float=4.0,
                  map_resolution:float=0.02,
-                 likelihood_field_sigma:float = 0.05,
+                 likelihood_field_sigma:float = 0.1,
                  update_k:int=3,
-                 scan_matching_subsample:int=3,
+                 scan_matching_subsample:int=16,
                  scan_matching_noise:np.array=np.array([0.01, 0.01, 0.005]),
-                 iters_to_recompute_lf:int=1):
+                 iters_to_recompute_lf:int=3):
         super().__init__('slam')
 
         self.declare_parameter("robot", "simulado")
@@ -130,12 +132,12 @@ class SLAM(Node):
             sensor_qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
             # El mapa conviene latcheado para que RViz lo reciba aunque se conecte tarde
             map_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE)
-            self.calcodom_sub = self.create_subscription(Odometry, "/tb4_0/odom", self.odom_callback, sensor_qos)
-            self.scan_sub = self.create_subscription(LaserScan, "/tb4_0/scan", self.scan_callback, sensor_qos)
+            self.calcodom_sub = self.create_subscription(Odometry, "/tb4_1/odom", self.odom_callback, sensor_qos)
+            self.scan_sub = self.create_subscription(LaserScan, "/tb4_1/scan", self.scan_callback, sensor_qos)
 
-            self.belief_pub = self.create_publisher(Belief, '/tb4_0/belief', 10)
-            self.map_pub = self.create_publisher(OccupancyGrid, '/tb4_0/map', map_qos)
-            self.particles_pub = self.create_publisher(PoseArray, '/tb4_0/particles', 10)
+            self.belief_pub = self.create_publisher(Belief, '/tb4_1/belief', 10)
+            self.map_pub = self.create_publisher(OccupancyGrid, '/tb4_1/map', map_qos)
+            self.particles_pub = self.create_publisher(PoseArray, '/tb4_1/particles', 10)
 
             self.rTlidar = np.array([[0.0, -1.0,  0.0, -0.04],
                                      [1.0,  0.0,  0.0,   0.0],
@@ -172,12 +174,25 @@ class SLAM(Node):
         self.maps = [og.ParticleMap(width, height, resolution, origin_x, origin_y) for _ in range(self.N)]
 
         # Scan matching
-        self.match_subsample = scan_matching_subsample  # subsample de rayos 
+        self.match_subsample = scan_matching_subsample  # subsample de rayos
         self.match_noise = scan_matching_noise          # jitter alrededor del optimo, para mantener diversidad
+        self.map_subsample = 2  # subsample de rayos para construir el mapa
         
         self.scan_count = 0
         self.cached_lf = None
         self.lf_recompute_interval = iters_to_recompute_lf
+
+        # Autoguardado del mapa: cada 'map_save_interval' scans se guarda el mapa de la
+        # mejor particula en .npz, con EXACTAMENTE el mismo formato que save_map.py.
+        # 'map_save_path' es la ruta base (sin extension); el archivo queda en el
+        # directorio de trabajo del nodo (igual que save_map.py). interval<=0 lo desactiva.
+        self.declare_parameter("map_save_path", "mapa_slam")
+        self.declare_parameter("map_save_interval", 100)
+        self.map_save_path = self.get_parameter("map_save_path").get_parameter_value().string_value
+        self.map_save_interval = self.get_parameter("map_save_interval").get_parameter_value().integer_value
+        if self.map_save_interval > 0:
+            self.get_logger().info(
+                f"Autoguardado de mapa cada {self.map_save_interval} scans en '{self.map_save_path}.npz'")
 
    
     def scan_callback(self, msg: LaserScan):
@@ -191,6 +206,11 @@ class SLAM(Node):
             intensities = np.asarray(msg.intensities)
             if intensities.size == ranges.size:
                 ranges[intensities <= 0.0] = np.inf
+
+        # Descartar lecturas de rango maximo (no-lecturas): no son obstaculos ni info
+        # confiable. En inf, el isfinite las excluye del mapeo, el matching y el pesado.
+        ranges[ranges >= msg.range_max] = np.inf
+        ranges(ranges <= msg.range_min) = np.inf  # descartar tambien rangos invalidos por debajo del minimo
 
         scan_angles = msg.angle_min + np.arange(len(ranges)) * msg.angle_increment
         scan_data = (msg.angle_min, msg.angle_increment, msg.range_max, ranges, msg.range_min, msg.intensities)
@@ -240,12 +260,12 @@ class SLAM(Node):
         # depende del mapa propio, todas las particulas deben mantener su mapa al dia
         # (ya no vale el atajo de mapear solo las top-K).
         for i in range(self.N):
-            self.maps[i].update(robot_to_sensor(self.particles[i], self.lidar_offset), scan_data)
+            self.maps[i].update(robot_to_sensor(self.particles[i], self.lidar_offset), scan_data, subsample=self.map_subsample)
 
 
         # Resamplear si N_eff bajo
         n_eff = pf.effective_sample_size(self.weights)
-        if n_eff < self.N*0.75:
+        if n_eff < self.N*0.5:
             self.particles, self.weights, self.maps = pf.sus(self.particles, self.weights, self.maps)
 
 
@@ -254,13 +274,17 @@ class SLAM(Node):
 
         self.scan_count += 1
 
+        # Checkpoint periodico del mapa a .npz (mismo formato que save_map.py)
+        if self.map_save_interval > 0 and self.scan_count % self.map_save_interval == 0:
+            self.save_map_npz()
+
 
     def odom_callback(self, msg: Odometry):
         # Solo guarda la ultima odometria. La prediccion se hace una vez por scan
         # en scan_callback, con el delta acumulado desde el scan anterior.
         self.last_odom = extract_pose(msg)
         # La estimacion vive en el frame de la odometria que se integra (calc_odom en
-        # sim, tb4_0/odom en el TB): publicamos mapa y particulas en ese frame.
+        # sim, tb4_1/odom en el TB): publicamos mapa y particulas en ese frame.
         self.odom_frame = msg.header.frame_id
 
     def publish_particles(self, stamp):
@@ -289,6 +313,33 @@ class SLAM(Node):
     def publish_map(self, best_idx, stamp):
         best_map = self.maps[best_idx].to_occupancy_grid_msg(frame_id=self.odom_frame, stamp=stamp)
         self.map_pub.publish(best_map)
+
+    def save_map_npz(self):
+        # Guarda el mapa de la mejor particula en .npz con EXACTAMENTE el mismo formato
+        # que save_map.py: se parte del OccupancyGrid (mapa publicado) y se extraen grid,
+        # resolucion y origen de la misma manera, con las mismas claves del np.savez.
+        best_idx = int(np.argmax(self.weights))
+        msg = self.maps[best_idx].to_occupancy_grid_msg(
+            frame_id=self.odom_frame, stamp=self.get_clock().now().to_msg())
+
+        w, h = msg.info.width, msg.info.height
+        # data es row-major desde la esquina inferior-izquierda (fila 0 = abajo)
+        grid = np.array(msg.data, dtype=np.int16).reshape(h, w)
+
+        res = msg.info.resolution
+        o = msg.info.origin.position
+
+        # .npz: grilla + metadata (resolucion y origen). Sin el origen, quien cargue el
+        # mapa no sabe donde esta apoyada la grilla.
+        np.savez(f"{self.map_save_path}.npz",
+                 grid=grid,
+                 resolution=res,
+                 origin_x=o.x,
+                 origin_y=o.y)
+
+        self.get_logger().info(
+            f"[checkpoint scan {self.scan_count}] Guardado {self.map_save_path}.npz  |  "
+            f"{h}x{w} celdas, resolucion={res} m, origin=({o.x:.3f}, {o.y:.3f})")
 
     def publish_results(self):
         stamp = self.get_clock().now().to_msg()

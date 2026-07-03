@@ -35,7 +35,7 @@ def _score(pose, bx, by, field):
     return field.log_prob(points).sum()
 
 
-def scan_match(pose, bx, by, field, linear_step=0.1, angular_step=0.08, iters=4):
+def scan_match(pose, bx, by, field, linear_step=0.05, angular_step=0.01, iters=4):
     """
     Refina 'pose' (x, y, theta) maximizando la verosimilitud del scan contra el
     likelihood field. Hill-climbing greedy: prueba moverse +/- un paso en x, y y

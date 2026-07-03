@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/custom_msgs
+CMAKE_SOURCE_DIR = /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/src/custom_msgs
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/custom_msgs
+CMAKE_BINARY_DIR = /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs
 
 # Utility rule file for uninstall.
 
@@ -78,6 +78,6 @@ CMakeFiles/uninstall.dir/clean:
 .PHONY : CMakeFiles/uninstall.dir/clean
 
 CMakeFiles/uninstall.dir/depend:
-	cd /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/custom_msgs && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/custom_msgs /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/src/custom_msgs /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/custom_msgs /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/custom_msgs /home/abril/Documents/PrincipiosRobotica/TP_final_robotica/ros_ws/build/custom_msgs/CMakeFiles/uninstall.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/src/custom_msgs /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/src/custom_msgs /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs/CMakeFiles/uninstall.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/uninstall.dir/depend
 

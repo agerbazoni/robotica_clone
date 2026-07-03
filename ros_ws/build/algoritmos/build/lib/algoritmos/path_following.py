@@ -1,6 +1,6 @@
 import numpy as np
 
-def pure_pursuit(pose, path, lookahead_dist, v_max=0.18):
+def pure_pursuit(pose, path, lookahead_dist, v_max=0.18, align_threshold=0.7):
     rx, ry, rtheta = pose
     path = np.array(path)
 
@@ -35,10 +35,15 @@ def pure_pursuit(pose, path, lookahead_dist, v_max=0.18):
 
     gamma = 2.0 * y_local / L_sq
 
-    # si el lookahead esta detras del robot, girar sin avanzar
-    if x_local < 0:
-        alpha = np.arctan2(dy, dx) - rtheta
-        alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
+    # Error de rumbo hacia el punto de lookahead, en el marco del robot.
+    alpha = np.arctan2(y_local, x_local)
+
+    # Si el objetivo está muy desalineado con el rumbo actual (junta entre dos caminos
+    # de waypoints consecutivos, donde A* ignora la orientación con la que llega el robot
+    # y arranca en otra dirección), pivotamos en el lugar hasta encarar antes de avanzar.
+    # Así evitamos el arco ancho de "girar y avanzar a la vez", que en un quiebro cerrado
+    # cerca de un obstáculo termina clipeándolo. Incluye el caso del punto por detrás.
+    if abs(alpha) > align_threshold:
         omega = np.clip(2.0 * alpha, -0.8, 0.8)
         return 0.0, omega, goal_idx
 
