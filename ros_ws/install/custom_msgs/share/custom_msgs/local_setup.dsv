@@ -1,4 +1,1 @@
-source;share/custom_msgs/environment/ament_prefix_path.sh
-source;share/custom_msgs/environment/library_path.sh
-source;share/custom_msgs/environment/path.sh
-source;share/custom_msgs/environment/pythonpath.sh
+/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs/ament_cmake_environment_hooks/local_setup.dsv

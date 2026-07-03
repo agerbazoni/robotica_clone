@@ -18,6 +18,7 @@ WAITING_GOAL = 1
 PLANNING = 2
 NAVIGATING = 3
 ADJUSTING_ANGLE = 4
+ALIGNING = 5          # rota en el lugar para encarar el path antes de seguirlo (pure_pursuit)
 
 def pose_to_matrix(pose):
     """
@@ -523,6 +524,31 @@ class nodo_b(Node):
                     return True
         return False
 
+    def path_heading_error(self):
+        """
+        Error de rumbo (rad, normalizado) entre la orientación actual del robot y la
+        dirección hacia el punto de lookahead del path. Es el ángulo que hay que girar
+        para encarar el path antes de empezar a seguirlo con pure_pursuit (mismo criterio
+        de lookahead, para que al terminar de alinear el pursuit arranque suave).
+        """
+        path = np.array(self.path)
+        rx, ry, rtheta = self.estimated_pose
+
+        dists = np.hypot(path[:, 0] - rx, path[:, 1] - ry)
+        closest = int(np.argmin(dists))
+
+        goal_idx = len(path) - 1
+        acc = 0.0
+        for i in range(closest, len(path) - 1):
+            acc += np.hypot(path[i+1, 0] - path[i, 0], path[i+1, 1] - path[i, 1])
+            if acc >= self.lookahead:
+                goal_idx = i + 1
+                break
+
+        gx, gy = path[goal_idx]
+        desired = np.arctan2(gy - ry, gx - rx)
+        return np.arctan2(np.sin(desired - rtheta), np.cos(desired - rtheta))
+
 # ------------------------------------------------------
 # PUBLISHERS
 # ------------------------------------------------------
@@ -713,11 +739,11 @@ class nodo_b(Node):
                 self.inipos_dif = False
 
             self.plan_route()
-            if self.path is not None: # Si se encontró un camino, se publica y se cambia al estado de navegación.
+            if self.path is not None: # Si se encontró un camino, se publica y se pasa a alinear con él antes de seguirlo.
                 self.publish_planned_path()
                 self.replan_attempts = 0
                 self.obstacle_cooldown = 10
-                self.state = NAVIGATING
+                self.state = ALIGNING
             else: # Si no se encontró un camino, se incrementa el contador de intentos de replanificación y se muestra un mensaje de advertencia. Si se superan los 30 intentos, se muestra un mensaje de error y se reinicia el estado a WAITING_GOAL.
                 self.replan_attempts += 1
                 self.get_logger().warn(f'No path found, intento {self.replan_attempts}')
@@ -725,6 +751,28 @@ class nodo_b(Node):
                     self.get_logger().error('No se puede llegar al objetivo')
                     self.replan_attempts = 0
                     self.state = WAITING_GOAL
+            return
+
+        elif self.state == ALIGNING:
+            # Antes de seguir el path, rotamos en el lugar hasta encarar su dirección
+            # inicial. Evita el arco ancho de pure_pursuit en la junta entre waypoints
+            # (donde A* ignora la orientación con la que llega el robot). Misma lógica que
+            # ADJUSTING_ANGLE: ganancia proporcional + compensación de inercia (rotation_error).
+            if self.goal_dif or self.inipos_dif: # Si cambió el objetivo/pose inicial, replanificar.
+                self.goal_dif = False
+                self.inipos_dif = False
+                self.publish_movement(0.0, 0.0)
+                self.state = PLANNING
+                return
+
+            raw_error = self.path_heading_error()
+            error = raw_error - np.sign(raw_error) * self.rotation_error
+            if abs(error) < 0.10: # Ya encara el path -> pasar a seguirlo con pure_pursuit.
+                self.publish_movement(0.0, 0.0)
+                self.state = NAVIGATING
+            else:
+                omega = np.clip(1.5 * error, -0.8, 0.8)
+                self.publish_movement(0.0, omega)
             return
 
         elif self.state == NAVIGATING:

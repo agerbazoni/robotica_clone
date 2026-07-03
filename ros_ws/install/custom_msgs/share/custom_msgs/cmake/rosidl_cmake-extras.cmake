@@ -1,4 +1,1 @@
-# generated from rosidl_cmake/cmake/rosidl_cmake-extras.cmake.in
-
-set(custom_msgs_IDL_FILES "msg/DeltaOdom.idl;msg/Belief.idl")
-set(custom_msgs_INTERFACE_FILES "msg/DeltaOdom.msg;msg/Belief.msg")
+/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs/rosidl_cmake/rosidl_cmake-extras.cmake

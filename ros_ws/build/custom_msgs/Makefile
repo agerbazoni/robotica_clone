@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/src/custom_msgs
+CMAKE_SOURCE_DIR = /home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/src/custom_msgs
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs
+CMAKE_BINARY_DIR = /home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -142,9 +142,9 @@ install/strip/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs/CMakeFiles /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs/CMakeFiles /home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -315,17 +315,17 @@ custom_msgs__rosidl_typesupport_cpp/fast:
 .PHONY : custom_msgs__rosidl_typesupport_cpp/fast
 
 #=============================================================================
-# Target rules for targets named ament_cmake_python_copy_custom_msgs
+# Target rules for targets named ament_cmake_python_symlink_custom_msgs
 
 # Build rule for target.
-ament_cmake_python_copy_custom_msgs: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ament_cmake_python_copy_custom_msgs
-.PHONY : ament_cmake_python_copy_custom_msgs
+ament_cmake_python_symlink_custom_msgs: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ament_cmake_python_symlink_custom_msgs
+.PHONY : ament_cmake_python_symlink_custom_msgs
 
 # fast build rule for target.
-ament_cmake_python_copy_custom_msgs/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ament_cmake_python_copy_custom_msgs.dir/build.make CMakeFiles/ament_cmake_python_copy_custom_msgs.dir/build
-.PHONY : ament_cmake_python_copy_custom_msgs/fast
+ament_cmake_python_symlink_custom_msgs/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ament_cmake_python_symlink_custom_msgs.dir/build.make CMakeFiles/ament_cmake_python_symlink_custom_msgs.dir/build
+.PHONY : ament_cmake_python_symlink_custom_msgs/fast
 
 #=============================================================================
 # Target rules for targets named ament_cmake_python_build_custom_msgs_egg
@@ -404,6 +404,19 @@ custom_msgs__py: cmake_check_build_system
 custom_msgs__py/fast:
 	$(MAKE) $(MAKESILENT) -f custom_msgs__py/CMakeFiles/custom_msgs__py.dir/build.make custom_msgs__py/CMakeFiles/custom_msgs__py.dir/build
 .PHONY : custom_msgs__py/fast
+
+#=============================================================================
+# Target rules for targets named custom_msgs__rs
+
+# Build rule for target.
+custom_msgs__rs: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 custom_msgs__rs
+.PHONY : custom_msgs__rs
+
+# fast build rule for target.
+custom_msgs__rs/fast:
+	$(MAKE) $(MAKESILENT) -f custom_msgs__rs/CMakeFiles/custom_msgs__rs.dir/build.make custom_msgs__rs/CMakeFiles/custom_msgs__rs.dir/build
+.PHONY : custom_msgs__rs/fast
 
 rosidl_generator_c/custom_msgs/msg/detail/belief__functions.o: rosidl_generator_c/custom_msgs/msg/detail/belief__functions.c.o
 .PHONY : rosidl_generator_c/custom_msgs/msg/detail/belief__functions.o
@@ -875,10 +888,11 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... test"
 	@echo "... ament_cmake_python_build_custom_msgs_egg"
-	@echo "... ament_cmake_python_copy_custom_msgs"
+	@echo "... ament_cmake_python_symlink_custom_msgs"
 	@echo "... custom_msgs"
 	@echo "... custom_msgs__cpp"
 	@echo "... custom_msgs__py"
+	@echo "... custom_msgs__rs"
 	@echo "... custom_msgs_uninstall"
 	@echo "... uninstall"
 	@echo "... custom_msgs__rosidl_generator_c"

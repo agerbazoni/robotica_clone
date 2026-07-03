@@ -1,8 +1,8 @@
-# Install script for directory: /home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/build/custom_msgs/custom_msgs__py
+# Install script for directory: /home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs/custom_msgs__py
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/install/custom_msgs")
+  set(CMAKE_INSTALL_PREFIX "/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/install/custom_msgs")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 

@@ -15,6 +15,14 @@ import tf2_geometry_msgs
 from parteb.map_loader import MapData
 from algoritmos import path_planning
 
+# ------------------------------------------------------
+# ESTADOS
+# ------------------------------------------------------
+EXPLORANDO = 0          # patrulla los waypoints de cobertura buscando el cono
+NAVEGANDO_AL_CONO = 1   # vio el cono, navega hacia él vía planificador
+APROXIMACION_FINAL = 2  # cerca del cono, aproximación a ciegas por LIDAR
+MISION_CUMPLIDA = 3     # frenó a 20cm del cono
+
 
 def _centros_de_tramos(linea):
     """
@@ -104,16 +112,16 @@ def generar_waypoints_cobertura(map_data: MapData, spacing_m: float = 0.4, robot
 
 
 class MisionConoStateMachine(Node):
+    """
+    Nodo que implementa la máquina de estados de la búsqueda del cono y su
+    aproximación final: patrulla por waypoints de cobertura, persecución vía
+    planificador al verlo por visión, y aproximación ciega final por LIDAR.
+    """
     def __init__(self):
         super().__init__('state_machine_node')
-        
-        self.ESTADO_EXPLORANDO = 0
-        self.ESTADO_NAVEGANDO_AL_CONO = 1
-        self.ESTADO_APROXIMACION_FINAL = 2
-        self.ESTADO_MISION_CUMPLIDA = 3
-        
-        self.estado_actual = self.ESTADO_EXPLORANDO
-        
+
+        self.estado_actual = EXPLORANDO
+
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
@@ -169,7 +177,14 @@ class MisionConoStateMachine(Node):
         # parcialmente tapado) y preferimos volver a explorar.
         self.cono_confirmado_en_esta_persecucion = False
 
-        # --- Alineación final frente al cono (ESTADO_APROXIMACION_FINAL) ---
+        # Últimos mensajes recibidos por los subscribers. Los callbacks solo
+        # los guardan; toda la lógica de transición de estados vive en el
+        # loop() periódico (mismo patrón que en parteb/nodo_principal.py).
+        self.pose_msg = None
+        self.vision_msg = None
+        self.scan_msg = None
+
+        # --- Alineación final frente al cono (APROXIMACION_FINAL) ---
         # No usamos la orientación publicada por vision_node para esto (un cono es
         # simétrico, no tiene un "frente" real, y esa pose ni siquiera trae una
         # orientación confiable). En cambio comparamos, con el LIDAR, la distancia
@@ -181,7 +196,7 @@ class MisionConoStateMachine(Node):
         self.alineacion_tolerancia_m = self.get_parameter("alineacion_tolerancia_m").get_parameter_value().double_value
         self.alineacion_kp = self.get_parameter("alineacion_kp").get_parameter_value().double_value
         self.alineacion_velocidad_angular_max = self.get_parameter("alineacion_velocidad_angular_max").get_parameter_value().double_value
-        # Sub-estado de ESTADO_APROXIMACION_FINAL: al entrar, primero nos
+        # Sub-estado de APROXIMACION_FINAL: al entrar, primero nos
         # alineamos de frente al cono (girando en el lugar, SIN avanzar) y recién
         # después empezamos a avanzar en línea recta hasta los 20cm.
         self.alineando_cono = False
@@ -218,14 +233,53 @@ class MisionConoStateMachine(Node):
                 PoseStamped, '/tb4_0/estimated_pose', self.pose_callback, 10)
 
         self.get_logger().info(f'Cerebro iniciado (robot={robot}). Estado: EXPLORANDO laberinto...')
-        
+
         # Le damos 3 segundos al nodo para que levante y mandamos el primer destino
         self.timer = self.create_timer(3.0, self.iniciar_exploracion)
 
+        # Loop periódico: acá vive toda la máquina de estados.
+        self.loop_timer = self.create_timer(0.1, self.loop)
+
+# ------------------------------------------------------
+# POSE CALLBACK
+# ------------------------------------------------------
+    def pose_callback(self, msg: PoseStamped):
+        """
+        Guarda la última pose estimada recibida. El loop la usa para decidir
+        si llegamos a un waypoint de patrulla (EXPLORANDO) o a la última
+        posición conocida del cono (NAVEGANDO_AL_CONO).
+        """
+        self.pose_msg = msg
+
+# ------------------------------------------------------
+# VISION CALLBACK
+# ------------------------------------------------------
+    def vision_callback(self, msg: PoseStamped):
+        """
+        Guarda la última detección de visión recibida. El loop la consume
+        para disparar la transición EXPLORANDO -> NAVEGANDO_AL_CONO y, estando
+        en NAVEGANDO_AL_CONO, para actualizar el objetivo o decidir si hay que
+        pasar a APROXIMACION_FINAL.
+        """
+        self.vision_msg = msg
+
+# ------------------------------------------------------
+# SCAN CALLBACK
+# ------------------------------------------------------
+    def scan_callback(self, msg: LaserScan):
+        """
+        Guarda la última lectura de LIDAR recibida. El loop la usa durante
+        APROXIMACION_FINAL para alinearse y aproximarse al cono.
+        """
+        self.scan_msg = msg
+
+# ------------------------------------------------------
+# WAYPOINTS DE EXPLORACIÓN
+# ------------------------------------------------------
     def iniciar_exploracion(self):
         # Corre una sola vez, para arrancar el recorrido de patrulla
         self.timer.destroy()
-        if self.estado_actual == self.ESTADO_EXPLORANDO:
+        if self.estado_actual == EXPLORANDO:
             self.enviar_siguiente_waypoint()
 
     def enviar_siguiente_waypoint(self):
@@ -277,105 +331,127 @@ class MisionConoStateMachine(Node):
         self.get_logger().info(
             f'Retomando waypoint {self.waypoint_idx + 1}/{len(self.waypoints)}: ({x:.2f}, {y:.2f})')
 
-    def pose_callback(self, msg):
-        if self.estado_actual == self.ESTADO_EXPLORANDO:
-            if self.current_target is None:
+    def verificar_llegada_waypoint(self):
+        """
+        Estando en EXPLORANDO: si la última pose conocida ya está a menos de
+        goal_reached_threshold del waypoint actual, lo damos por alcanzado y
+        pedimos el siguiente.
+        """
+        if self.pose_msg is None or self.current_target is None:
+            return
+
+        dx = self.pose_msg.pose.position.x - self.current_target[0]
+        dy = self.pose_msg.pose.position.y - self.current_target[1]
+        distancia = math.hypot(dx, dy)
+
+        if distancia <= self.goal_reached_threshold:
+            self.get_logger().info('✅ Waypoint alcanzado. Sin cono a la vista, sigo patrullando.')
+            self.enviar_siguiente_waypoint()
+
+# ------------------------------------------------------
+# PERSECUCIÓN DEL CONO
+# ------------------------------------------------------
+    def verificar_cono_perdido(self):
+        """
+        Estando en NAVEGANDO_AL_CONO: si la última pose conocida ya llegó a
+        nav_cono_target (la última posición del cono que nos pasó visión) y no
+        hay una detección nueva pendiente de revisar, asumimos que perdimos el
+        cono de vista (oclusión, giro, falso positivo puntual) y volvemos a
+        EXPLORAR.
+
+        OJO: acá NO usamos un timeout por segundos. Un mapa grande o con
+        muchos obstáculos puede tardar en llegar sin que eso signifique que
+        perdimos el cono. En cambio, comparamos contra la ÚLTIMA posición
+        del cono que conocemos.
+        """
+        if self.pose_msg is None or self.nav_cono_target is None:
+            return
+
+        dx = self.pose_msg.pose.position.x - self.nav_cono_target[0]
+        dy = self.pose_msg.pose.position.y - self.nav_cono_target[1]
+        distancia = math.hypot(dx, dy)
+
+        if distancia <= self.goal_reached_threshold:
+            if self.deteccion_reciente_sin_revisar:
+                # Llegamos, pero hubo una detección nueva hace poco (puede
+                # estar en camino un target más cercano todavía). Le damos
+                # una vuelta más antes de decidir que lo perdimos.
+                self.deteccion_reciente_sin_revisar = False
                 return
 
-            dx = msg.pose.position.x - self.current_target[0]
-            dy = msg.pose.position.y - self.current_target[1]
-            distancia = math.hypot(dx, dy)
+            self.get_logger().info(
+                '🤔 Llegué a la última posición conocida del cono y no lo veo más. Vuelvo a EXPLORAR.')
+            self.estado_actual = EXPLORANDO
+            self.nav_cono_target = None
+            self.reintentar_waypoint_actual()
 
-            if distancia <= self.goal_reached_threshold:
-                self.get_logger().info('✅ Waypoint alcanzado. Sin cono a la vista, sigo patrullando.')
-                self.enviar_siguiente_waypoint()
-            return
+    def procesar_deteccion_cono(self, msg):
+        """
+        Procesa una detección de visión pendiente estando en NAVEGANDO_AL_CONO
+        (recién transicionado o ya en curso): actualiza el objetivo enviado al
+        planificador, o decide si hay que pasar a APROXIMACION_FINAL o volver
+        a EXPLORAR.
+        """
+        self.deteccion_reciente_sin_revisar = True
 
-        if self.estado_actual == self.ESTADO_NAVEGANDO_AL_CONO and self.nav_cono_target is not None:
-            # OJO: acá NO usamos un timeout por segundos. Un mapa grande o con
-            # muchos obstáculos puede tardar en llegar sin que eso signifique que
-            # perdimos el cono. En cambio, comparamos contra la ÚLTIMA posición
-            # del cono que conocemos.
-            dx = msg.pose.position.x - self.nav_cono_target[0]
-            dy = msg.pose.position.y - self.nav_cono_target[1]
-            distancia = math.hypot(dx, dy)
+        # z=1.0 -> Nivel 2 confirmado (forma validada); z=0.0 -> solo
+        # sospecha de Nivel 1 (ver nota en vision_node.py).
+        confirmado_este_mensaje = msg.pose.position.z >= 0.5
+        if confirmado_este_mensaje:
+            self.cono_confirmado_en_esta_persecucion = True
 
-            if distancia <= self.goal_reached_threshold:
-                if self.deteccion_reciente_sin_revisar:
-                    # Llegamos, pero hubo una detección nueva hace poco (puede
-                    # estar en camino un target más cercano todavía). Le damos
-                    # una vuelta más antes de decidir que lo perdimos.
-                    self.deteccion_reciente_sin_revisar = False
-                    return
+        distancia_al_cono = msg.pose.position.x
 
-                self.get_logger().info(
-                    '🤔 Llegué a la última posición conocida del cono y no lo veo más. Vuelvo a EXPLORAR.')
-                self.estado_actual = self.ESTADO_EXPLORANDO
+        if distancia_al_cono < 0.60:
+            if not self.cono_confirmado_en_esta_persecucion:
+                # Llegamos cerca pero nunca lo vimos confirmado (Nivel 2):
+                # veníamos solo por sospechas de Nivel 1. A esta distancia un
+                # cono real ya debería mostrar área y forma claras, así que
+                # asumimos falso positivo (ej. un cilindro parecido) y no nos
+                # comprometemos a la fase ciega de aproximación final.
+                self.get_logger().warn(
+                    '🤨 Llegué cerca pero nunca confirmé que sea un cono (solo sospechas). '
+                    'Puede ser otra cosa roja. Vuelvo a EXPLORAR.')
+                self.estado_actual = EXPLORANDO
                 self.nav_cono_target = None
                 self.reintentar_waypoint_actual()
+                return
 
-    def vision_callback(self, msg):
-        if self.estado_actual == self.ESTADO_EXPLORANDO:
-            self.get_logger().info('¡👀 Cono a la vista! Cambiando a NAVEGANDO_AL_CONO.')
-            self.estado_actual = self.ESTADO_NAVEGANDO_AL_CONO
-            self.cono_confirmado_en_esta_persecucion = False
+            self.get_logger().info('⚠️ Cono a menos de 60cm. Apagando planificador, paso a LIDAR.')
+            self.estado_actual = APROXIMACION_FINAL
+            self.nav_cono_target = None
+            # Al entrar a esta fase vamos "a ciegas" (sin visión, solo LIDAR):
+            # primero nos alineamos de frente al cono sin avanzar, y recién
+            # después empezamos a acercarnos en línea recta.
+            self.alineando_cono = True
+        else:
+            try:
+                transformacion = self.tf_buffer.lookup_transform(
+                    'map', msg.header.frame_id, rclpy.time.Time())
 
-        if self.estado_actual == self.ESTADO_NAVEGANDO_AL_CONO:
-            self.deteccion_reciente_sin_revisar = True
+                goal_global = tf2_geometry_msgs.do_transform_pose(msg.pose, transformacion)
 
-            # z=1.0 -> Nivel 2 confirmado (forma validada); z=0.0 -> solo
-            # sospecha de Nivel 1 (ver nota en vision_node.py).
-            confirmado_este_mensaje = msg.pose.position.z >= 0.5
-            if confirmado_este_mensaje:
-                self.cono_confirmado_en_esta_persecucion = True
+                goal_msg_map = PoseStamped()
+                goal_msg_map.header.frame_id = 'map'
+                goal_msg_map.header.stamp = self.get_clock().now().to_msg()
+                goal_msg_map.pose = goal_global
 
-            distancia_al_cono = msg.pose.position.x
+                self.goal_pub.publish(goal_msg_map)
+                self.nav_cono_target = (goal_global.position.x, goal_global.position.y)
+                self.get_logger().info(f'🗺️ Ruta actualizada en el mapa: X={goal_global.position.x:.2f}, Y={goal_global.position.y:.2f}')
 
-            if distancia_al_cono < 0.60:
-                if not self.cono_confirmado_en_esta_persecucion:
-                    # Llegamos cerca pero nunca lo vimos confirmado (Nivel 2):
-                    # veníamos solo por sospechas de Nivel 1. A esta distancia un
-                    # cono real ya debería mostrar área y forma claras, así que
-                    # asumimos falso positivo (ej. un cilindro parecido) y no nos
-                    # comprometemos a la fase ciega de aproximación final.
-                    self.get_logger().warn(
-                        '🤨 Llegué cerca pero nunca confirmé que sea un cono (solo sospechas). '
-                        'Puede ser otra cosa roja. Vuelvo a EXPLORAR.')
-                    self.estado_actual = self.ESTADO_EXPLORANDO
-                    self.nav_cono_target = None
-                    self.reintentar_waypoint_actual()
-                    return
+            except Exception as e:
+                pass # Silenciamos el warning de tf2 para no ensuciar la terminal
 
-                self.get_logger().info('⚠️ Cono a menos de 60cm. Apagando planificador, paso a LIDAR.')
-                self.estado_actual = self.ESTADO_APROXIMACION_FINAL
-                self.nav_cono_target = None
-                # Al entrar a esta fase vamos "a ciegas" (sin visión, solo LIDAR):
-                # primero nos alineamos de frente al cono sin avanzar, y recién
-                # después empezamos a acercarnos en línea recta.
-                self.alineando_cono = True
-            else:
-                try:
-                    transformacion = self.tf_buffer.lookup_transform(
-                        'map', msg.header.frame_id, rclpy.time.Time())
-                    
-                    goal_global = tf2_geometry_msgs.do_transform_pose(msg.pose, transformacion)
-                    
-                    goal_msg_map = PoseStamped()
-                    goal_msg_map.header.frame_id = 'map'
-                    goal_msg_map.header.stamp = self.get_clock().now().to_msg()
-                    goal_msg_map.pose = goal_global
-                    
-                    self.goal_pub.publish(goal_msg_map)
-                    self.nav_cono_target = (goal_global.position.x, goal_global.position.y)
-                    self.get_logger().info(f'🗺️ Ruta actualizada en el mapa: X={goal_global.position.x:.2f}, Y={goal_global.position.y:.2f}')
-                    
-                except Exception as e:
-                    pass # Silenciamos el warning de tf2 para no ensuciar la terminal
-
-    def scan_callback(self, msg):
-        if self.estado_actual != self.ESTADO_APROXIMACION_FINAL:
-            return
-
+# ------------------------------------------------------
+# APROXIMACIÓN FINAL (LIDAR)
+# ------------------------------------------------------
+    def procesar_scan_aproximacion(self, msg):
+        """
+        Estando en APROXIMACION_FINAL: primero alinea de frente al cono
+        girando en el lugar (alineando_cono), y luego avanza en línea recta
+        hasta quedar a 20cm de él.
+        """
         rayos_10_grados = int(math.radians(10) / msg.angle_increment)
         # En el LaserScan, índice 0 = frente, ángulos crecientes hacia la izquierda
         # (CCW). Los primeros N rayos son "frente-hacia-la-derecha" y los últimos N
@@ -425,11 +501,56 @@ class MisionConoStateMachine(Node):
         if distancia <= 0.20:
             self.get_logger().info('🛑 ¡FRENANDO! Quedamos a 20cm exactos. Misión Cumplida.')
             self.cmd_vel_pub.publish(Twist())
-            self.estado_actual = self.ESTADO_MISION_CUMPLIDA
+            self.estado_actual = MISION_CUMPLIDA
         else:
             vel_msg.linear.x = 0.1
             self.cmd_vel_pub.publish(vel_msg)
 
+# ------------------------------------------------------
+# LOOP
+# ------------------------------------------------------
+    def loop(self):
+        """
+        Loop principal del nodo. Representa la máquina de estados que decide,
+        según el estado actual, cómo reaccionar a la última pose conocida, a
+        la detección de visión pendiente y a la última lectura de LIDAR.
+        """
+        if self.estado_actual == EXPLORANDO:
+            self.verificar_llegada_waypoint()
+
+            if self.vision_msg is not None:
+                msg = self.vision_msg
+                self.vision_msg = None
+
+                self.get_logger().info('¡👀 Cono a la vista! Cambiando a NAVEGANDO_AL_CONO.')
+                self.estado_actual = NAVEGANDO_AL_CONO
+                self.cono_confirmado_en_esta_persecucion = False
+
+                # Ya que cambiamos de estado, procesamos esta misma detección
+                # contra NAVEGANDO_AL_CONO (por ejemplo puede que ya estemos a
+                # menos de 60cm del cono).
+                self.procesar_deteccion_cono(msg)
+            return
+
+        elif self.estado_actual == NAVEGANDO_AL_CONO:
+            self.verificar_cono_perdido()
+
+            if self.vision_msg is not None:
+                msg = self.vision_msg
+                self.vision_msg = None
+                self.procesar_deteccion_cono(msg)
+            return
+
+        elif self.estado_actual == APROXIMACION_FINAL:
+            if self.scan_msg is not None:
+                self.procesar_scan_aproximacion(self.scan_msg)
+            return
+
+        # MISION_CUMPLIDA: no hay nada más que hacer.
+
+# ------------------------------------------------------
+# MAIN
+# ------------------------------------------------------
 def main(args=None):
     rclpy.init(args=args)
     sm_node = MisionConoStateMachine()
@@ -442,3 +563,5 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+

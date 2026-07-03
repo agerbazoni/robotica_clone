@@ -4,3 +4,6 @@ source;share/parteb/hook/pythonpath.sh
 source;share/parteb/hook/ament_prefix_path.ps1
 source;share/parteb/hook/ament_prefix_path.dsv
 source;share/parteb/hook/ament_prefix_path.sh
+source;../../build/parteb/share/parteb/hook/pythonpath_develop.ps1
+source;../../build/parteb/share/parteb/hook/pythonpath_develop.dsv
+source;../../build/parteb/share/parteb/hook/pythonpath_develop.sh

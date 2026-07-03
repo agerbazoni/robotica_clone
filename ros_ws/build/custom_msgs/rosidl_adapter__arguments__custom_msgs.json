@@ -1,7 +1,7 @@
 {
   "package_name": "custom_msgs",
   "non_idl_tuples": [
-    "/home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/src/custom_msgs:msg/DeltaOdom.msg",
-    "/home/abril/Documents/PrincipiosRobotica/Prueba/TP_final_robotica/ros_ws/src/custom_msgs:msg/Belief.msg"
+    "/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/src/custom_msgs:msg/DeltaOdom.msg",
+    "/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/src/custom_msgs:msg/Belief.msg"
   ]
 }

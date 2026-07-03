@@ -4,3 +4,6 @@ source;share/algoritmos/hook/pythonpath.sh
 source;share/algoritmos/hook/ament_prefix_path.ps1
 source;share/algoritmos/hook/ament_prefix_path.dsv
 source;share/algoritmos/hook/ament_prefix_path.sh
+source;../../build/algoritmos/share/algoritmos/hook/pythonpath_develop.ps1
+source;../../build/algoritmos/share/algoritmos/hook/pythonpath_develop.dsv
+source;../../build/algoritmos/share/algoritmos/hook/pythonpath_develop.sh

@@ -1,6 +1,1 @@
-setup.py
-custom_msgs/__init__.py
-custom_msgs.egg-info/PKG-INFO
-custom_msgs.egg-info/SOURCES.txt
-custom_msgs.egg-info/dependency_links.txt
-custom_msgs.egg-info/top_level.txt
+/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/custom_msgs/ament_cmake_python/custom_msgs/custom_msgs.egg-info/SOURCES.txt

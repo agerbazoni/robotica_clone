@@ -1,12 +1,1 @@
-<?xml version="1.0"?>
-<package format="3">
-  <name>algoritmos</name>
-  <version>0.0.1</version>
-  <description>Algoritmos compartidos</description>
-  <maintainer email="tu@email.com">tu_nombre</maintainer>
-  <license>MIT</license>
-  <buildtool_depend>ament_python</buildtool_depend>
-  <export>
-    <build_type>ament_python</build_type>
-  </export>
-</package>
+/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/build/algoritmos/package.xml

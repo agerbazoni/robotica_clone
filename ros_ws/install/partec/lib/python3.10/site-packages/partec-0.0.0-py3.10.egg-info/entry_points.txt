@@ -1,4 +1,0 @@
-[console_scripts]
-cerebro = partec.state_machine:main
-vision = partec.vision_node:main
-

@@ -1,2 +1,1 @@
-geometry_msgs/Pose2D mu
-float64[9] covariance  # row-major 3x3
+/home/lucas/Documents/UDESA/7cuatrimestre/Principios_de_la_Robotica_Autonoma/TPs/TP_final_robotica/ros_ws/src/custom_msgs/msg/Belief.msg
